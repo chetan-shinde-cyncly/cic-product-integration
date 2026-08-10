@@ -1,0 +1,10 @@
+body {
+  margin: 0;
+  background: #f7f9fc;
+  color: #1f2937;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#root {
+  min-height: 100vh;
+}

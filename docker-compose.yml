@@ -1,0 +1,78 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cic_catalogs}
+      POSTGRES_USER: ${POSTGRES_USER:-cyncly_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy.env}
+    volumes:
+      - cic_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-cyncly_user} -d ${POSTGRES_DB:-cic_catalogs}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+
+  server:
+    build:
+      context: ./server
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 5100
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cyncly_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cic_catalogs}
+      DATABASE_SSL: "false"
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-cyncly_admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in deploy.env}
+      DAILY_REFRESH_ENABLED: ${DAILY_REFRESH_ENABLED:-true}
+      DAILY_REFRESH_HOUR_IST: ${DAILY_REFRESH_HOUR_IST:-6}
+      DAILY_REFRESH_MINUTE_IST: ${DAILY_REFRESH_MINUTE_IST:-0}
+      DAILY_REFRESH_LANG: ${DAILY_REFRESH_LANG:-en-US}
+      DAILY_REFRESH_SPACING_MINUTES: ${DAILY_REFRESH_SPACING_MINUTES:-3}
+    volumes:
+      - cic_catalogs:/app/catalogs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [backend]
+
+  client:
+    build:
+      context: ./client
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-80}:80"
+    depends_on:
+      server:
+        condition: service_healthy
+    networks: [backend]
+
+  seed-admin:
+    build:
+      context: ./server
+    profiles: [tools]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cyncly_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cic_catalogs}
+      DATABASE_SSL: "false"
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-cyncly_admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in deploy.env}
+    command: ["node", "scripts/seed-admin.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [backend]
+
+volumes:
+  cic_postgres_data:
+  cic_catalogs:
+
+networks:
+  backend:

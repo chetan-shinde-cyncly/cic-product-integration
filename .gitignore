@@ -1,0 +1,104 @@
+# Dependencies (root, client, and server)
+node_modules/
+**/node_modules/
+
+# Production builds and bundler caches
+dist/
+**/dist/
+build/
+**/build/
+.vite/
+**/.vite/
+.cache/
+**/.cache/
+.parcel-cache/
+**/.parcel-cache/
+
+# Test and coverage output
+coverage/
+**/coverage/
+.nyc_output/
+**/.nyc_output/
+test-results/
+playwright-report/
+
+# Runtime-generated catalog data and server caches
+server/catalogs/
+server/cache/
+server/cache.legacy/
+server/.tmp/
+.tmp-prune-test/
+
+# Environment files and deployment secrets
+.env
+.env.*
+**/.env
+**/.env.*
+deploy.env
+deploy.*.env
+
+# Safe templates that must remain in Git
+!.env.example
+!**/.env.example
+!deploy.env.example
+
+# Local Docker overrides
+docker-compose.override.yml
+compose.override.yml
+
+# Logs and process files
+*.log
+*.err
+*.out
+*.pid
+*.pid.lock
+logs/
+**/logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local databases, dumps, and backups
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.bak
+*.backup
+
+# Certificates, keys, and credentials
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+service-account*.json
+
+# Temporary files
+tmp/
+temp/
+**/tmp/
+**/temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Editor and IDE files
+.vscode/
+**/.vscode/
+.idea/
+**/.idea/
+*.code-workspace
+
+# Operating-system files
+.DS_Store
+**/.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Project-specific generated files
+product-json-mapping-demo.html
