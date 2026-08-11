@@ -6,13 +6,15 @@ import CatalogList from "./components/CatalogList";
 import CatalogViewer from "./components/CatalogViewer";
 import GeneratedFilesList from "./components/GeneratedFilesList";
 
-const API_BASE_CANDIDATES = [
-  "",
-  "http://127.0.0.1:5100",
-  "http://localhost:5100",
-  "http://127.0.0.1:5000",
-  "http://localhost:5000",
-];
+const API_BASE_CANDIDATES = import.meta.env.DEV
+  ? [
+      "",
+      "http://127.0.0.1:5100",
+      "http://localhost:5100",
+      "http://127.0.0.1:5000",
+      "http://localhost:5000",
+    ]
+  : [""];
 const DEFAULT_HEADERS = {
   "Content-Type": "application/json",
 };
@@ -200,9 +202,7 @@ async function fetchApi(path, options = {}, fallbackMessage) {
 
 function buildDownloadUrl(path) {
   const requestPath = buildApiUrl(path);
-  const downloadBase =
-    import.meta.env.VITE_API_DOWNLOAD_BASE ||
-    (window.location.port === "5100" ? "" : "http://localhost:5100");
+  const downloadBase = import.meta.env.VITE_API_DOWNLOAD_BASE || "";
 
   return `${downloadBase}${requestPath}`;
 }

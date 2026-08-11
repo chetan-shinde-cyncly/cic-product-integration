@@ -12,8 +12,13 @@ const { createDailyRefreshScheduler } = require("./scheduler/dailyRefresh");
 const { createCacheFileHelpers } = require("./helpers/cacheFiles");
 const { getPool, initializeDatabase } = require("./db");
 const { createAuthRepository } = require("./repositories/authRepository");
-const { createCatalogSelectionRepository } = require("./repositories/catalogSelectionRepository");
-const { createAuthMiddleware, registerAuthRoutes } = require("./routes/authRoutes");
+const {
+  createCatalogSelectionRepository,
+} = require("./repositories/catalogSelectionRepository");
+const {
+  createAuthMiddleware,
+  registerAuthRoutes,
+} = require("./routes/authRoutes");
 
 dotenv.config({ path: path.resolve(__dirname, ".env") });
 
@@ -57,7 +62,7 @@ app.use(
   }),
 );
 
-const port = process.env.PORT || 5100;
+const PORT = process.env.PORT || 5100;
 const cacheDir = path.join(__dirname, "catalogs");
 const generatedDir = path.join(cacheDir, "generated");
 const legacyCacheDir = path.join(__dirname, "cache");
@@ -2856,10 +2861,15 @@ app.use((error, _req, res, _next) => {
 });
 
 async function startServer() {
+  console.log("Starting server...");
+  console.log("Initializing database...");
+
   await initializeDatabase();
-  app.listen(port, () => {
-    console.log(`Server listening on http://localhost:${port}`);
-    scheduleNextDailyRefresh();
+
+  console.log("Database initialized.");
+
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
   });
 }
 
