@@ -6,7 +6,7 @@ import CatalogList from "./components/CatalogList";
 import CatalogViewer from "./components/CatalogViewer";
 import GeneratedFilesList from "./components/GeneratedFilesList";
 
-const API_BASE_CANDIDATES = import.meta.env.DEV
+const API_BASE_CANDIDATES = process.env.NODE_ENV === "development"
   ? [
       "",
       "http://127.0.0.1:5100",
@@ -40,7 +40,7 @@ function parseResponseText(raw, fallbackMessage) {
     if (routeNotFoundMatch) {
       const [, method, route] = routeNotFoundMatch;
       throw new Error(
-        `${fallbackMessage} ${method.toUpperCase()} ${route.trim()} was not found on the backend. Check that the correct API server is running and that the Vite proxy target matches it.`,
+        `${fallbackMessage} ${method.toUpperCase()} ${route.trim()} was not found on the backend. Check that the correct API server is running and that the development proxy target matches it.`,
       );
     }
 
@@ -202,7 +202,7 @@ async function fetchApi(path, options = {}, fallbackMessage) {
 
 function buildDownloadUrl(path) {
   const requestPath = buildApiUrl(path);
-  const downloadBase = import.meta.env.VITE_API_DOWNLOAD_BASE || "";
+  const downloadBase = process.env.API_DOWNLOAD_BASE || "";
 
   return `${downloadBase}${requestPath}`;
 }

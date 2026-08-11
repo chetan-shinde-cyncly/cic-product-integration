@@ -503,8 +503,8 @@ const createDailyRefreshScheduler = (app, dependencies = {}) => {
       res.json({
         enabled: DAILY_REFRESH_ENABLED,
         running: dailyRefreshRunning,
-        nextRunAt: nextDailyRefreshRunAt
-          ? nextDailyRefreshRunAt.toISOString()
+        nextRunAt: DAILY_REFRESH_ENABLED
+          ? (nextDailyRefreshRunAt || getNextIstRunDate()).toISOString()
           : null,
         timeZone: "Asia/Kolkata",
         hour: DAILY_REFRESH_HOUR_IST,

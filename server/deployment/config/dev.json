@@ -1,0 +1,49 @@
+{
+  "account": "202061849983",
+  "region": "us-east-1",
+  "vpcId": "vpc-086692d4081db1b6f",
+  "publicSubnetIds": [
+    "subnet-0a97c28c458f887ee",
+    "subnet-0748be9bc387e9bed"
+  ],
+  "privateSubnetIds": [
+    "subnet-00734449e15fcada0",
+    "subnet-06bd23074687dbdaa"
+  ],
+  "ecrRepoName": "cic-app",
+  "stackPrefix": "CIC",
+  "hostedZoneId": "Z02737592W07GAMOC920C",
+  "hostedZoneName": "my.dev.broadlume.com",
+  "certificateArn": "arn:aws:acm:us-east-1:202061849983:certificate/aa5d5536-0088-45bf-98b4-0ab9708e5405",
+  "api": {
+    "serviceName": "cic-api",
+    "cpu": 512,
+    "memory": 1024,
+    "desiredCount": 1,
+    "containerPort": 5100,
+    "healthCheckPath": "/api/health",
+    "healthCheckInterval": 30,
+    "healthCheckTimeout": 5
+  },
+  "worker": {
+    "serviceName": "cic-scheduler",
+    "cpu": 256,
+    "memory": 512,
+    "desiredCount": 1
+  },
+  "database": {
+    "name": "cic_catalogs",
+    "instanceType": "t4g.micro",
+    "allocatedStorage": 20,
+    "maxAllocatedStorage": 100,
+    "backupRetentionDays": 7
+  },
+  "scheduler": {
+    "enabled": true,
+    "hourIst": 6,
+    "minuteIst": 0,
+    "lang": "en-US",
+    "spacingMinutes": 3
+  },
+  "nodeEnv": "development"
+}

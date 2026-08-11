@@ -30,6 +30,24 @@ docker compose --env-file deploy.env ps
 ```
 
 Use long, different, URL-safe values for `POSTGRES_PASSWORD` and `ADMIN_PASSWORD`. Never commit `deploy.env`.
+
+### Existing PostgreSQL credentials
+
+The current server database uses these non-secret connection settings:
+
+```env
+PGHOST=postgres
+PGPORT=5432
+PGUSER=postgres
+PGDATABASE=cic_catalogs
+PGPASSWORD=<existing-server-password>
+DATABASE_SSL=false
+```
+
+Store the existing password only in the server's untracked `deploy.env`, `.env`,
+or AWS Secrets Manager. `PGHOST=postgres` works when the API and PostgreSQL
+containers share the Docker Compose network. ECS tasks require a hostname or
+private IP that is resolvable and reachable from their VPC.
 Set `COOKIE_SECURE=false` for local HTTP testing and `COOKIE_SECURE=true` for production HTTPS.
 
 Open `http://SERVER_IP/health` and `http://SERVER_IP/api/health` to verify the client and API/database respectively.

@@ -1,0 +1,11 @@
+{
+  "account": "202061849983",
+  "region": "us-east-1",
+  "nodeEnv": "development",
+  "stackPrefix": "CicFrontend",
+  "domainName": "cic.my.dev.broadlume.com",
+  "hostedZoneName": "my.dev.broadlume.com",
+  "hostedZoneId": "Z02737592W07GAMOC920C",
+  "certificateArn": "arn:aws:acm:us-east-1:202061849983:certificate/aa5d5536-0088-45bf-98b4-0ab9708e5405",
+  "frontendBuildPath": "../dist"
+}

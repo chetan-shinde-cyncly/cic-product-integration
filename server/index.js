@@ -2861,12 +2861,19 @@ app.use((error, _req, res, _next) => {
 });
 
 async function startServer() {
+  const serviceRole = String(process.env.SERVICE_ROLE || "api").toLowerCase();
   console.log("Starting server...");
   console.log("Initializing database...");
 
   await initializeDatabase();
 
   console.log("Database initialized.");
+
+  if (serviceRole === "scheduler") {
+    await scheduleNextDailyRefresh();
+    console.log("CIC scheduler worker running.");
+    return;
+  }
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);

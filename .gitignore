@@ -5,6 +5,8 @@ node_modules/
 # Production builds and bundler caches
 dist/
 **/dist/
+cdk.out/
+**/cdk.out/
 build/
 **/build/
 .vite/

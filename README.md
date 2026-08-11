@@ -128,6 +128,11 @@ Important server variables:
 | `PORT` | Express API port; default is `5100`. |
 | `DATABASE_URL` | PostgreSQL connection URL. |
 | `DATABASE_SSL` | Enable PostgreSQL TLS for an external managed database. |
+| `PGHOST` | PostgreSQL host used when `DATABASE_URL` is not set. |
+| `PGPORT` | PostgreSQL port, normally `5432`. |
+| `PGUSER` | Existing PostgreSQL user. |
+| `PGPASSWORD` | Existing PostgreSQL password; keep it outside Git. |
+| `PGDATABASE` | PostgreSQL database name. |
 | `ADMIN_USERNAME` | Administrator created by the seed command. |
 | `ADMIN_PASSWORD` | Administrator password used by the seed command. |
 | `COOKIE_SECURE` | `false` for local HTTP; `true` for production HTTPS. |
@@ -169,6 +174,23 @@ COOKIE_SECURE=false
 ```
 
 Use the actual PostgreSQL port from your installation. Some Windows installations use `5433` instead of `5432`.
+
+Alternatively, configure the existing server database with separate PostgreSQL
+variables. For the current Docker deployment, the non-secret values are:
+
+```env
+PGHOST=postgres
+PGPORT=5432
+PGUSER=postgres
+PGDATABASE=cic_catalogs
+PGPASSWORD=<existing-server-password>
+DATABASE_SSL=false
+```
+
+The hostname `postgres` is the Docker Compose service name and resolves only
+from containers attached to the same Compose network. Keep the existing
+password in the untracked `.env`/`deploy.env` file or a secret manager; do not
+add it to this README or commit it.
 
 ### 2. Install dependencies
 

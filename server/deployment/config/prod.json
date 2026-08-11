@@ -1,0 +1,49 @@
+{
+  "account": "202061849983",
+  "region": "us-east-1",
+  "vpcId": "vpc-03741c60c9bab6d40",
+  "publicSubnetIds": [
+    "subnet-0e9c927aad4a5501d",
+    "subnet-047f7f0f73dd803c1"
+  ],
+  "privateSubnetIds": [
+    "subnet-0f17eaabb948afc7a",
+    "subnet-044b47d134870c507"
+  ],
+  "ecrRepoName": "cic-app-prod",
+  "stackPrefix": "CICProduction",
+  "hostedZoneId": "Z00242782TZKUIDYZTY65",
+  "hostedZoneName": "web.cyncly.com",
+  "certificateArn": "arn:aws:acm:us-east-1:202061849983:certificate/4a72c2d7-41c7-41e6-9cbb-4b46d464b830",
+  "api": {
+    "serviceName": "cic-apiProduction",
+    "cpu": 1024,
+    "memory": 2048,
+    "desiredCount": 2,
+    "containerPort": 5100,
+    "healthCheckPath": "/api/health",
+    "healthCheckInterval": 30,
+    "healthCheckTimeout": 5
+  },
+  "worker": {
+    "serviceName": "cic-schedulerProduction",
+    "cpu": 512,
+    "memory": 1024,
+    "desiredCount": 1
+  },
+  "database": {
+    "name": "cic_catalogs",
+    "instanceType": "t4g.small",
+    "allocatedStorage": 20,
+    "maxAllocatedStorage": 100,
+    "backupRetentionDays": 14
+  },
+  "scheduler": {
+    "enabled": true,
+    "hourIst": 6,
+    "minuteIst": 0,
+    "lang": "en-US",
+    "spacingMinutes": 3
+  },
+  "nodeEnv": "production"
+}

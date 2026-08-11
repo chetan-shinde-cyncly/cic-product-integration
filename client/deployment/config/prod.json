@@ -1,0 +1,11 @@
+{
+  "account": "202061849983",
+  "region": "us-east-1",
+  "nodeEnv": "production",
+  "stackPrefix": "CicFrontendProduction",
+  "domainName": "cic.web.cyncly.com",
+  "hostedZoneName": "web.cyncly.com",
+  "hostedZoneId": "Z02737592W07GAMOC920C",
+  "certificateArn": "arn:aws:acm:us-east-1:202061849983:certificate/4a72c2d7-41c7-41e6-9cbb-4b46d464b830",
+  "frontendBuildPath": "../dist"
+}

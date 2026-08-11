@@ -6,11 +6,24 @@ let pool;
 
 function getPool() {
   if (!pool) {
-    if (!process.env.DATABASE_URL) {
-      throw new Error("DATABASE_URL is required. See server/.env.example.");
+    const connectionString = String(process.env.DATABASE_URL || "").trim();
+    const hasPgConfiguration =
+      process.env.PGHOST && process.env.PGUSER && process.env.PGPASSWORD;
+    if (!connectionString && !hasPgConfiguration) {
+      throw new Error(
+        "DATABASE_URL or PGHOST/PGUSER/PGPASSWORD is required. See server/.env.example.",
+      );
     }
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
+      ...(connectionString
+        ? { connectionString }
+        : {
+            host: process.env.PGHOST,
+            port: Number(process.env.PGPORT || 5432),
+            database: process.env.PGDATABASE || "cic_catalogs",
+            user: process.env.PGUSER,
+            password: process.env.PGPASSWORD,
+          }),
       ssl:
         String(process.env.DATABASE_SSL || "false").toLowerCase() === "true"
           ? { rejectUnauthorized: false }
@@ -33,4 +46,3 @@ async function closeDatabase() {
 }
 
 module.exports = { getPool, initializeDatabase, closeDatabase };
-
