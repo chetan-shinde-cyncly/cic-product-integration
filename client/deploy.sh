@@ -48,7 +48,7 @@ if [[ -n "$EXPECTED_DISTRIBUTION_ID" ]]; then
     --stack-name "$STACK_NAME" \
     --region "$REGION" \
     --query "StackResourceSummaries[?ResourceType=='AWS::CloudFront::Distribution'].PhysicalResourceId | [0]" \
-    --output text)
+    --output json | jq -r '. // empty')
   if [[ "$STACK_DISTRIBUTION_ID" != "$EXPECTED_DISTRIBUTION_ID" ]]; then
     echo "Stack $STACK_NAME manages distribution '$STACK_DISTRIBUTION_ID'," >&2
     echo "but $CONFIG_FILE expects '$EXPECTED_DISTRIBUTION_ID'. Aborting." >&2
@@ -61,7 +61,7 @@ if [[ -n "$EXPECTED_API_ORIGIN" ]]; then
   API_EXPORT_VALUE=$(aws cloudformation list-exports \
     --region "$REGION" \
     --query "Exports[?Name=='$API_EXPORT_NAME'].Value | [0]" \
-    --output text)
+    --output json | jq -r '. // empty')
   if [[ "${API_EXPORT_VALUE,,}" != "${EXPECTED_API_ORIGIN,,}" ]]; then
     echo "Export $API_EXPORT_NAME is '$API_EXPORT_VALUE', expected '$EXPECTED_API_ORIGIN'. Aborting." >&2
     exit 1
@@ -83,7 +83,7 @@ npm ci
 # distribution, bucket, OAI or bucket policy). A normal release only changes
 # the BucketDeployment asset.
 npx cdk diff "$STACK_NAME" --no-color --context env="$ENVIRONMENT" 2>&1 | tee "$DIFF_FILE"
-if grep -qE '^\[-\]|replace' "$DIFF_FILE"; then
+if grep -qE '^\[-\]|requires replacement|may cause replacement' "$DIFF_FILE"; then
   echo "cdk diff shows a resource removal or replacement. Aborting; review the diff above." >&2
   exit 1
 fi
