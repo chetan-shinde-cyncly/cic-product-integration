@@ -7,11 +7,13 @@ const zlib = require("zlib");
 const https = require("https");
 const http = require("http");
 const dotenv = require("dotenv");
-const { registerApiRoutes } = require("./routes/apiRoutes");
-const { createDailyRefreshScheduler } = require("./scheduler/dailyRefresh");
-const { createCacheFileHelpers } = require("./helpers/cacheFiles");
-const { getPool, initializeDatabase } = require("./db");
-const { createAuthRepository } = require("./repositories/authRepository");
+const {registerApiRoutes} = require("./routes/apiRoutes");
+const {createDailyRefreshScheduler} = require("./scheduler/dailyRefresh");
+const {createCacheFileHelpers} = require("./helpers/cacheFiles");
+const {createS3CatalogSync} = require("./services/s3CatalogSync");
+const {createProductsFetcher} = require("./services/productPagination");
+const {getPool, initializeDatabase} = require("./db");
+const {createAuthRepository} = require("./repositories/authRepository");
 const {
   createCatalogSelectionRepository,
 } = require("./repositories/catalogSelectionRepository");
@@ -20,7 +22,7 @@ const {
   registerAuthRoutes,
 } = require("./routes/authRoutes");
 
-dotenv.config({ path: path.resolve(__dirname, ".env") });
+dotenv.config({path: path.resolve(__dirname, ".env")});
 
 delete process.env.HTTP_PROXY;
 delete process.env.http_proxy;
@@ -66,9 +68,12 @@ const PORT = process.env.PORT || 5100;
 const cacheDir = path.join(__dirname, "catalogs");
 const generatedDir = path.join(cacheDir, "generated");
 const legacyCacheDir = path.join(__dirname, "cache");
+const catalogStorage = process.env.CATALOG_STORAGE_BUCKET
+  ? createS3CatalogSync({rootDir: cacheDir})
+  : null;
 
 function mergeDirectory(sourceDir, targetDir) {
-  fs.mkdirSync(targetDir, { recursive: true });
+  fs.mkdirSync(targetDir, {recursive: true});
   for (const entryName of fs.readdirSync(sourceDir)) {
     const sourcePath = path.join(sourceDir, entryName);
     const targetPath = path.join(targetDir, entryName);
@@ -189,7 +194,7 @@ function normalizeAllExistingGeneratedFiles(rootDir) {
     return;
   }
 
-  for (const entryName of fs.readdirSync(rootDir, { withFileTypes: true })) {
+  for (const entryName of fs.readdirSync(rootDir, {withFileTypes: true})) {
     const entryPath = path.join(rootDir, entryName.name);
     if (entryName.isDirectory()) {
       normalizeLegacyGeneratedProductTypeFiles(entryPath);
@@ -213,13 +218,13 @@ app.use(express.json());
 
 const authRepository = createAuthRepository(getPool());
 const catalogSelectionRepository = createCatalogSelectionRepository(getPool());
-const { optionalAuth, requireAuth } = createAuthMiddleware(authRepository);
+const {optionalAuth, requireAuth} = createAuthMiddleware(authRepository);
 app.use(optionalAuth);
 
 app.get("/api/health", async (_req, res, next) => {
   try {
     await getPool().query("SELECT 1");
-    res.json({ status: "healthy", database: "connected" });
+    res.json({status: "healthy", database: "connected"});
   } catch (error) {
     next(error);
   }
@@ -380,7 +385,7 @@ async function mapWithConcurrency(items, worker, concurrency) {
   }
 
   const workerCount = Math.min(concurrency, Math.max(items.length, 1));
-  await Promise.all(Array.from({ length: workerCount }, () => runWorker()));
+  await Promise.all(Array.from({length: workerCount}, () => runWorker()));
 
   return results;
 }
@@ -402,11 +407,7 @@ function normalizeFullDetailsEntry(entry) {
   }
 
   if (!entry.fullDetails) {
-    const {
-      itemDetails: _itemDetails,
-      product: _product,
-      ...restEntry
-    } = entry;
+    const {itemDetails: _itemDetails, product: _product, ...restEntry} = entry;
     return {
       ...(product && typeof product === "object" ? product : {}),
       ...(itemDetails && typeof itemDetails === "object" ? itemDetails : {}),
@@ -650,40 +651,11 @@ async function fetchCatalogsFromApi(lang) {
   }
 }
 
-async function fetchProductsByCatalogVersionId(catalogVersionId) {
-  const url = `https://management.cyncly-content.com/item-offering/api/v1/items?catalogVersionId=${encodeURIComponent(
-    catalogVersionId,
-  )}`;
-
-  try {
-    const response = await fetchUrl(url, { timeout: 30000 });
-    const buffer = await response.arrayBuffer();
-    const decoded = decodeProductsResponse(buffer);
-    const parsed = JSON.parse(decoded);
-
-    if (!response.ok) {
-      throw new Error(parsed.message || "Products API request failed.");
-    }
-
-    return parsed;
-  } catch (error) {
-    if (error.name === "AbortError") {
-      throw new Error(
-        `Products API request timeout for catalogVersionId ${catalogVersionId}.`,
-      );
-    }
-
-    throw new Error(
-      `Products API request failed for catalogVersionId ${catalogVersionId}: ${describeFetchError(error)}`,
-    );
-  }
-}
-
 async function fetchItemDetails(parentItemId) {
   const url = `https://api.cyncly-content.com/api/v1/items/${encodeURIComponent(parentItemId)}`;
 
   try {
-    const response = await fetchUrl(url, { timeout: 30000 });
+    const response = await fetchUrl(url, {timeout: 30000});
     const buffer = await response.arrayBuffer();
     const decoded = decodeProductsResponse(buffer);
     const parsed = JSON.parse(decoded);
@@ -707,7 +679,7 @@ async function fetchGroupsByCatalogVersionId(catalogVersionId, lang = "en-US") {
   )}&type=items&lang=${encodeURIComponent(lang)}`;
 
   try {
-    const response = await fetchUrl(url, { timeout: 30000 });
+    const response = await fetchUrl(url, {timeout: 30000});
     const buffer = await response.arrayBuffer();
     const decoded = decodeProductsResponse(buffer);
     const parsed = JSON.parse(decoded);
@@ -788,6 +760,27 @@ function decodeProductsResponse(body) {
   }
 
   return directText;
+}
+
+const fetchPaginatedProducts = createProductsFetcher({
+  fetchUrl,
+  decodeProductsResponse,
+});
+
+async function fetchProductsByCatalogVersionId(catalogVersionId) {
+  try {
+    return await fetchPaginatedProducts(catalogVersionId);
+  } catch (error) {
+    if (error.name === "AbortError") {
+      throw new Error(
+        `Products API request timeout for catalogVersionId ${catalogVersionId}.`,
+      );
+    }
+
+    throw new Error(
+      `Products API request failed for catalogVersionId ${catalogVersionId}: ${describeFetchError(error)}`,
+    );
+  }
 }
 
 function normalizeToUint8Array(body) {
@@ -907,12 +900,12 @@ function extractItemsFromPayload(payload) {
     };
   }
 
-  const queue = [{ value: payload, path: "root" }];
+  const queue = [{value: payload, path: "root"}];
   const visited = new Set();
 
   while (queue.length) {
     const current = queue.shift();
-    const { value, path } = current;
+    const {value, path} = current;
 
     if (!value || typeof value !== "object") {
       continue;
@@ -1034,6 +1027,10 @@ function getGroupKind(group) {
     return "collection";
   }
 
+  if (values.includes("productline") || values.includes("product_line")) {
+    return "productLine";
+  }
+
   return "";
 }
 
@@ -1048,9 +1045,9 @@ function simplifyGroup(group) {
     getGroupKind(group) || String(group.type || group.groupType || "");
 
   return {
-    ...(id ? { id } : {}),
-    ...(name ? { name } : {}),
-    ...(type ? { type } : {}),
+    ...(id ? {id} : {}),
+    ...(name ? {name} : {}),
+    ...(type ? {type} : {}),
   };
 }
 
@@ -1082,6 +1079,9 @@ function getProductGroups(product, groupLookup) {
   let collection = matchedGroups.find(
     (group) => getGroupKind(group) === "collection",
   );
+  const productLine = matchedGroups.find(
+    (group) => getGroupKind(group) === "productLine",
+  );
 
   if ((!brand || !collection) && matchedGroups.length >= 2) {
     const unclassifiedGroups = matchedGroups.filter(
@@ -1098,6 +1098,7 @@ function getProductGroups(product, groupLookup) {
   return {
     brand: simplifyGroup(brand),
     collection: simplifyGroup(collection),
+    productLine: simplifyGroup(productLine),
   };
 }
 
@@ -1383,7 +1384,7 @@ function mapProductForExport(product) {
         }
       });
       return [...uniqueValues.values()]
-        .sort((a, b) => b.localeCompare(a, undefined, { sensitivity: "base" }))
+        .sort((a, b) => b.localeCompare(a, undefined, {sensitivity: "base"}))
         .join(" / ");
     }
     return coerceExportValue(val);
@@ -1457,6 +1458,9 @@ function mapProductForExport(product) {
     ),
     collection_name: coerceExportValue(
       getNestedValue(product, "collection.name"),
+    ),
+    product_line: coerceExportValue(
+      getNestedValue(product, "productLine.name"),
     ),
     color: coerceExportValue(getNestedValue(product, "names.main.en-US")),
     color_facet: toTitleCase(
@@ -1579,7 +1583,7 @@ function mapProductForExport(product) {
     style: styleValue,
     style_facet: toTitleCase(styleValue),
     style_code: coerceExportValue(getNestedValue(product, "styleNumber")),
-    sub_brand: coerceExportValue(getNestedValue(product, "collection.name")),
+    sub_brand: coerceExportValue(getNestedValue(product, "productLine.name")),
     sub_type: coerceExportValue(getNestedValue(product, "subProductTypeName")),
     surface_texture: processedSurfaceTexture,
     surface_texture_facet: toTitleCase(processedSurfaceTexture),
@@ -1650,7 +1654,7 @@ function buildProductTypeExports(fullDetails, lang, catalogVersionId) {
   const catalogDir = generatedCatalogDirPath(catalogName);
   const groupedExports = new Map();
 
-  fs.mkdirSync(catalogDir, { recursive: true });
+  fs.mkdirSync(catalogDir, {recursive: true});
   normalizeLegacyGeneratedProductTypeFiles(catalogDir);
 
   (Array.isArray(fullDetails) ? fullDetails : []).forEach((product) => {
@@ -1686,6 +1690,14 @@ function buildProductTypeExports(fullDetails, lang, catalogVersionId) {
     catalogDir,
     files.map((file) => file.fileName),
   );
+
+  // Product and full-details caches are intermediate build artifacts. The
+  // product-type files above are the durable output, so only remove the
+  // intermediates after at least one output file was written successfully.
+  if (files.length > 0) {
+    deleteProductCache(lang, catalogVersionId);
+    deleteFullDetailsCache(lang, catalogVersionId);
+  }
 
   return {
     catalogName,
@@ -1967,7 +1979,7 @@ function appendFullDetailsJobLog(lang, catalogVersionId, message, details) {
 async function buildFullProductDetails(
   products,
   lang = "en-US",
-  groupLookup = { groups: [], byRef: new Map() },
+  groupLookup = {groups: [], byRef: new Map()},
   catalogVersionId = "",
   onProgress = () => {},
   onLog = () => {},
@@ -2072,7 +2084,7 @@ async function buildFullProductDetails(
       const productGroups =
         product?.groupRefs && groupProductsMap
           ? buildProductGroupsOptimized(product.groupRefs, groupProductsMap)
-          : { brand: null, collection: null };
+          : {brand: null, collection: null, productLine: null};
 
       // OPTIMIZATION: Extract manufacturer once instead of nested ternaries
       const dependencyManufacturer = extractManufacturerName(
@@ -2141,7 +2153,7 @@ async function buildFullProductDetails(
         onProgress({
           completed,
           total: productsToProcess.length,
-          itemDetails: { ...itemDetailsStats },
+          itemDetails: {...itemDetailsStats},
         });
       }
 
@@ -2240,6 +2252,7 @@ function buildGroupProductsMap(groupLookup) {
 function buildProductGroupsOptimized(groupRefs, groupProductsMap) {
   let brand = null;
   let collection = null;
+  let productLine = null;
 
   if (Array.isArray(groupRefs)) {
     const groups = groupRefs
@@ -2253,6 +2266,8 @@ function buildProductGroupsOptimized(groupRefs, groupProductsMap) {
           brand = simplifyGroup(group);
         } else if (kind === "collection" && !collection) {
           collection = simplifyGroup(group);
+        } else if (kind === "productLine" && !productLine) {
+          productLine = simplifyGroup(group);
         }
       }
     }
@@ -2271,7 +2286,7 @@ function buildProductGroupsOptimized(groupRefs, groupProductsMap) {
     }
   }
 
-  return { brand, collection };
+  return {brand, collection, productLine};
 }
 
 // OPTIMIZATION: Extract manufacturer name without nested conditions
@@ -2333,11 +2348,11 @@ function buildMergedProduct(
   itemDetailsError,
 ) {
   // Start with product as base
-  const result = { ...product };
+  const result = {...product};
 
   // Merge itemDetails if exists (exclude id and code)
   if (itemDetails && typeof itemDetails === "object") {
-    const { id, code, ...itemDetailsWithoutIdCode } = itemDetails;
+    const {id, code, ...itemDetailsWithoutIdCode} = itemDetails;
     Object.assign(result, itemDetailsWithoutIdCode);
   }
 
@@ -2347,6 +2362,9 @@ function buildMergedProduct(
   }
   if (productGroups.collection) {
     result.collection = productGroups.collection;
+  }
+  if (productGroups.productLine) {
+    result.productLine = productGroups.productLine;
   }
 
   // Add dependency data if exists
@@ -2564,7 +2582,7 @@ async function ensureFullDetailsCache(
         lang,
         catalogVersionId,
         "Full-details refresh failed while refreshing products.",
-        { catalogVersionId, lang, error: failedJob.error },
+        {catalogVersionId, lang, error: failedJob.error},
       );
       unregisterActiveJob(jobKey);
       return {
@@ -2598,7 +2616,7 @@ async function ensureFullDetailsCache(
       logs: [
         logFullDetails(
           "Full-details refresh aborted because total count could not be determined.",
-          { catalogVersionId, lang },
+          {catalogVersionId, lang},
         ),
       ],
     };
@@ -2608,7 +2626,7 @@ async function ensureFullDetailsCache(
       lang,
       catalogVersionId,
       "Full-details refresh aborted because total count could not be determined.",
-      { catalogVersionId, lang, derivedTotal },
+      {catalogVersionId, lang, derivedTotal},
     );
     unregisterActiveJob(jobKey);
 
@@ -2636,7 +2654,7 @@ async function ensureFullDetailsCache(
 
   const jobPromise = (async () => {
     try {
-      let groupLookup = { groups: [], byRef: new Map() };
+      let groupLookup = {groups: [], byRef: new Map()};
       try {
         setFullDetailsJobStatus(lang, catalogVersionId, {
           ...getFullDetailsJobStatus(lang, catalogVersionId),
@@ -2654,7 +2672,7 @@ async function ensureFullDetailsCache(
           lang,
           catalogVersionId,
           "Group enrichment unavailable. Continuing full-details generation.",
-          { catalogVersionId, lang, error: error.message || String(error) },
+          {catalogVersionId, lang, error: error.message || String(error)},
         );
       }
 
@@ -2671,7 +2689,7 @@ async function ensureFullDetailsCache(
         lang,
         groupLookup,
         catalogVersionId,
-        ({ completed, total, itemDetails }) => {
+        ({completed, total, itemDetails}) => {
           // OPTIMIZATION: Update job state with reduced overhead
           const currentJob = getFullDetailsJobStatus(lang, catalogVersionId);
           setFullDetailsJobStatus(lang, catalogVersionId, {
@@ -2734,7 +2752,7 @@ async function ensureFullDetailsCache(
         lang,
         catalogVersionId,
         "Full-details job completed successfully.",
-        { catalogVersionId, lang, total: items.length },
+        {catalogVersionId, lang, total: items.length},
       );
 
       return saved;
@@ -2743,7 +2761,7 @@ async function ensureFullDetailsCache(
         lang,
         catalogVersionId,
         "Full-details job failed.",
-        { catalogVersionId, lang, error: error.message },
+        {catalogVersionId, lang, error: error.message},
       );
       const failedJob = getFullDetailsJobStatus(lang, catalogVersionId);
       setFullDetailsJobStatus(lang, catalogVersionId, {
@@ -2836,7 +2854,7 @@ process.on("unhandledRejection", (reason) => {
   console.error("Unhandled rejection:", reason);
 });
 
-const { scheduleNextDailyRefresh } = createDailyRefreshScheduler(app, {
+const {scheduleNextDailyRefresh} = createDailyRefreshScheduler(app, {
   ensureFullDetailsCache,
   readProductCache,
   readFullDetailsCache,
@@ -2857,12 +2875,20 @@ const { scheduleNextDailyRefresh } = createDailyRefreshScheduler(app, {
 app.use((error, _req, res, _next) => {
   console.error("Request failed:", error?.message || error);
   if (res.headersSent) return;
-  res.status(500).json({ message: "Internal server error." });
+  res.status(500).json({message: "Internal server error."});
 });
 
 async function startServer() {
   const serviceRole = String(process.env.SERVICE_ROLE || "api").toLowerCase();
   console.log("Starting server...");
+  if (catalogStorage) {
+    console.log("Hydrating catalog storage from S3...");
+    await catalogStorage.start();
+  } else {
+    console.log(
+      "CATALOG_STORAGE_BUCKET is not set; using local catalog storage.",
+    );
+  }
   console.log("Initializing database...");
 
   await initializeDatabase();
@@ -2879,6 +2905,20 @@ async function startServer() {
     console.log(`Server running on port ${PORT}`);
   });
 }
+
+async function stopServer(signal) {
+  console.log(`Received ${signal}; flushing catalog changes to S3.`);
+  try {
+    await catalogStorage?.stop();
+  } catch (error) {
+    console.error("Unable to flush catalog storage during shutdown:", error);
+  } finally {
+    process.exit(0);
+  }
+}
+
+process.once("SIGTERM", () => void stopServer("SIGTERM"));
+process.once("SIGINT", () => void stopServer("SIGINT"));
 
 startServer().catch((error) => {
   console.error("Unable to start server:", error.message || error);

@@ -2,8 +2,8 @@ import * as cdk from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as ecs from "aws-cdk-lib/aws-ecs";
-import * as efs from "aws-cdk-lib/aws-efs";
 import * as rds from "aws-cdk-lib/aws-rds";
+import * as s3 from "aws-cdk-lib/aws-s3";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
 import { getConfig } from "./config";
@@ -14,8 +14,7 @@ interface WorkerStackProps extends cdk.StackProps {
   database: rds.DatabaseInstance;
   databaseSecret: secretsmanager.ISecret;
   appAuthSecret: secretsmanager.ISecret;
-  fileSystem: efs.IFileSystem;
-  accessPoint: efs.IAccessPoint;
+  catalogBucket: s3.IBucket;
 }
 
 export class WorkerStack extends cdk.Stack {
@@ -41,17 +40,6 @@ export class WorkerStack extends cdk.Stack {
       memoryLimitMiB: config.worker.memory,
     });
 
-    task.addVolume({
-      name: "catalogs",
-      efsVolumeConfiguration: {
-        fileSystemId: props.fileSystem.fileSystemId,
-        transitEncryption: "ENABLED",
-        authorizationConfig: {
-          accessPointId: props.accessPoint.accessPointId,
-          iam: "ENABLED",
-        },
-      },
-    });
     const container = task.addContainer("SchedulerContainer", {
       image: ecs.ContainerImage.fromEcrRepository(repo, "latest"),
       command: ["node", "index.js"],
@@ -63,7 +51,7 @@ export class WorkerStack extends cdk.Stack {
       environment: {
         NODE_ENV: config.nodeEnv,
         SERVICE_ROLE: "scheduler",
-        DATABASE_SSL: "false",
+        DATABASE_SSL: "true",
         PGHOST: props.database.dbInstanceEndpointAddress,
         PGPORT: props.database.dbInstanceEndpointPort,
         PGDATABASE: config.database.name,
@@ -74,6 +62,9 @@ export class WorkerStack extends cdk.Stack {
         DAILY_REFRESH_SPACING_MINUTES: String(
           config.scheduler.spacingMinutes,
         ),
+        CATALOG_STORAGE_BUCKET: props.catalogBucket.bucketName,
+        CATALOG_STORAGE_PREFIX: "catalogs",
+        CATALOG_STORAGE_SYNC_INTERVAL_MS: "15000",
       },
       secrets: {
         PGUSER: ecs.Secret.fromSecretsManager(
@@ -86,13 +77,7 @@ export class WorkerStack extends cdk.Stack {
         ),
       },
     });
-    container.addMountPoints({
-      sourceVolume: "catalogs",
-      containerPath: "/app/catalogs",
-      readOnly: false,
-    });
-
-    props.fileSystem.grantRootAccess(task.taskRole);
+    props.catalogBucket.grantReadWrite(task.taskRole);
     props.databaseSecret.grantRead(task.taskRole);
 
     new ecs.FargateService(this, "SchedulerService", {

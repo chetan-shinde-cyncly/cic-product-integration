@@ -633,11 +633,47 @@ const registerApiRoutes = (app, dependencies) => {
     const lang = String(req.query.lang || "en-US").trim();
     const download =
       String(req.query.download || "false").toLowerCase() === "true";
-    const cachePayload = readFullDetailsCache(lang, catalogVersionId);
-
     if (!catalogVersionId) {
       return res.status(400).json({
         message: "catalogVersionId is required.",
+      });
+    }
+
+    const cachePayload = readFullDetailsCache(lang, catalogVersionId);
+    const catalogName = getCatalogNameByVersionId(lang, catalogVersionId);
+    const catalogDir = generatedCatalogDirPath(catalogName);
+    const generatedFileNames = listJsonFiles(catalogDir).filter((fileName) =>
+      isGeneratedProductTypeFile(fileName),
+    );
+    const existingJob = getProductTypeExportJobStatus(lang, catalogVersionId);
+
+    if (
+      !forceRegenerate &&
+      generatedFileNames.length > 0 &&
+      (!cachePayload || !Array.isArray(cachePayload.fullDetails))
+    ) {
+      const files = generatedFileNames.map((fileName) => {
+        const items = readJsonFile(path.join(catalogDir, fileName));
+        return {
+          productType: getProductTypeFromGeneratedFileName(fileName),
+          fileName,
+          filePath: path.join(catalogDir, fileName),
+          total: Array.isArray(items) ? items.length : 0,
+        };
+      });
+      return res.json({
+        status: "ready",
+        message: "Product JSON files are ready.",
+        metadata: {
+          catalogVersionId,
+          lang,
+          updatedAt: existingJob?.updatedAt || new Date().toISOString(),
+        },
+        catalogName,
+        catalogDir,
+        totalFiles: files.length,
+        totalProducts: files.reduce((total, file) => total + file.total, 0),
+        files,
       });
     }
 
@@ -1086,10 +1122,8 @@ const registerApiRoutes = (app, dependencies) => {
       });
     }
 
-    const catalogName = getCatalogNameByVersionId(lang, catalogVersionId);
     const generatedFilesExist =
       listJsonFiles(generatedCatalogDirPath(catalogName)).length > 0;
-    const existingJob = getProductTypeExportJobStatus(lang, catalogVersionId);
     const jobMatchesCache =
       existingJob?.result &&
       existingJob.result.totalProducts === cachePayload.fullDetails.length &&
@@ -1517,12 +1551,7 @@ const registerApiRoutes = (app, dependencies) => {
         fs.existsSync(generatedDir) &&
         fs.readdirSync(generatedDir).some((f) => f.endsWith(".json"));
 
-      const filesReady =
-        fullDetailsCache &&
-        Array.isArray(fullDetailsCache.fullDetails) &&
-        productsCache &&
-        Array.isArray(productsCache.items) &&
-        generatedFilesExist;
+      const filesReady = generatedFilesExist;
 
       if (!forceRegenerate && filesReady) {
         // Return cached files
@@ -1537,16 +1566,16 @@ const registerApiRoutes = (app, dependencies) => {
           catalogVersionId,
           catalogName,
           fullDetails: {
-            total: fullDetailsCache.fullDetails.length,
-            file: path.basename(
-              fullDetailsCacheFilePath(lang, catalogVersionId),
-            ),
-            cached: true,
+            total: 0,
+            file: null,
+            cached: false,
+            temporary: true,
           },
           products: {
-            total: productsCache.items.length,
-            file: path.basename(productCacheFilePath(lang, catalogVersionId)),
-            cached: true,
+            total: 0,
+            file: null,
+            cached: false,
+            temporary: true,
           },
           productTypes: {
             total: files.length,
@@ -1555,8 +1584,7 @@ const registerApiRoutes = (app, dependencies) => {
           },
           metadata: {
             lang,
-            generatedAt: fullDetailsCache.updatedAt,
-            productsUpdatedAt: productsCache.updatedAt,
+            generatedAt: new Date().toISOString(),
           },
         });
       }

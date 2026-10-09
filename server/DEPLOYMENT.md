@@ -7,15 +7,16 @@ storage, and networking integrations in the existing VPC.
 
 - Existing VPC and public/private subnets
 - ECS Fargate cluster
-- HTTPS application load balancer
+- Application load balancer (HTTP when no ACM certificate is configured)
 - One development API task or two production API tasks
 - One scheduler task per environment
 - Encrypted PostgreSQL 16 RDS instance with generated credentials
-- Encrypted EFS mounted at `/app/catalogs` by API and scheduler tasks
+- Private encrypted S3 bucket shared by API and scheduler tasks
+- Ephemeral `/app/catalogs` cache hydrated from and reconciled to S3 every 15 seconds
 - Secrets Manager secret for bootstrap administrator credentials
-- Existing ECR repository, ACM certificate, and DNS hosted zone
+- Existing ECR repository; ACM certificate and DNS hosted zone are optional
 
-RDS, EFS, database credentials, administrator credentials, the ECS cluster,
+RDS, catalog S3 data, database credentials, administrator credentials, the ECS cluster,
 and frontend S3 content use retention policies. Deleting a stack will not
 automatically delete retained data.
 
@@ -26,7 +27,7 @@ automatically delete retained data.
 - Node.js and npm
 - `jq`
 - AWS CDK bootstrap completed in `us-east-1`
-- Permission to manage CloudFormation, ECS, ECR, ELB, RDS, EFS, Secrets
+- Permission to manage CloudFormation, ECS, ECR, ELB, RDS, Secrets
   Manager, IAM, EC2 security groups, S3, and CloudFront
 
 ## Configuration
@@ -53,11 +54,70 @@ The password must remain in an untracked environment file or Secrets Manager.
 The Docker hostname `postgres` is not automatically resolvable from ECS. The
 current CDK configuration therefore continues to create RDS until a private
 hostname or IP reachable from the ECS VPC is supplied for the existing server.
+ECS tasks created by CDK use `DATABASE_SSL=true`, as RDS requires encrypted
+connections. The example above remains `false` only for local Docker PostgreSQL.
 
 The API listens on port `5100` and reports health at `/api/health`. API tasks
 report scheduler configuration but do not arm an automatic timer. The dedicated
 worker runs the scheduler at 06:00 IST with three minutes between selected
 catalogs.
+
+## EFS to S3 cutover
+
+The old filesystem has a `RETAIN` removal policy, so the CDK update detaches it
+without deleting its data. Perform the copy before allowing the new API and
+scheduler tasks to write catalog data:
+
+1. Record the current `FileSystemId` shared-stack output and stop the API and
+   scheduler services (set desired count to zero).
+2. Deploy only the shared stack with the default `retainLegacyEfs=true` context.
+   This creates `CatalogBucketName` while deliberately keeping EFS and its old
+   cross-stack exports available:
+
+   ```bash
+   cd deployment
+   npm ci
+   npx cdk deploy CICSharedStack --require-approval never --context env=dev
+   ```
+
+   Use `CICProductionSharedStack` and `--context env=prod` for production.
+
+3. Mount the retained EFS on an EC2 instance in the VPC, with its former access
+   point mounted so that the catalog files are the source directory.
+4. Copy and verify the files:
+
+   ```bash
+   ./scripts/migrate-catalogs-to-s3.sh \
+     --source /mnt/cic-catalogs \
+     --bucket "$(aws cloudformation describe-stacks \
+       --stack-name CICSharedStack \
+       --query \"Stacks[0].Outputs[?OutputKey=='CatalogBucketName'].OutputValue\" \
+       --output text)" \
+     --region us-east-1
+   ```
+
+5. Run `./deploy.sh --env dev` (or `./deploy-prod.sh`) to publish the new image
+   and deploy all stacks. Their task roles receive access only to
+   the catalog bucket; no NFS mount or EFS security-group rule remains.
+6. Confirm both task logs contain `S3 catalog storage hydrated.` and verify the
+   migrated downloads.
+7. Remove the legacy resources and compatibility exports only after the API and
+   worker stacks have finished switching to S3:
+
+   ```bash
+   cd deployment
+   npx cdk deploy CICSharedStack --require-approval never \
+     --context env=dev --context retainLegacyEfs=false
+   ```
+
+   Use the production stack and environment context for production. EFS has a
+   retention policy, so delete the retained filesystem manually only after the
+   cutover has been verified.
+
+Production uses S3 versioning with noncurrent versions retained for 30 days.
+S3 changes made by one task are visible to the other task after the next sync,
+normally within 15 seconds. Local development continues to use `server/catalogs`
+when `CATALOG_STORAGE_BUCKET` is unset.
 
 ## Deployment order
 

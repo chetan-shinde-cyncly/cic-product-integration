@@ -23,8 +23,7 @@ new ApiStack(app, `${config.stackPrefix}ApiStack`, {
   database: shared.database,
   databaseSecret: shared.databaseSecret,
   appAuthSecret: shared.appAuthSecret,
-  fileSystem: shared.fileSystem,
-  accessPoint: shared.accessPoint,
+  catalogBucket: shared.catalogBucket,
 });
 
 new WorkerStack(app, `${config.stackPrefix}WorkerStack`, {
@@ -34,6 +33,5 @@ new WorkerStack(app, `${config.stackPrefix}WorkerStack`, {
   database: shared.database,
   databaseSecret: shared.databaseSecret,
   appAuthSecret: shared.appAuthSecret,
-  fileSystem: shared.fileSystem,
-  accessPoint: shared.accessPoint,
+  catalogBucket: shared.catalogBucket,
 });

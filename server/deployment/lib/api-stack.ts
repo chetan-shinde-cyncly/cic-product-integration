@@ -1,11 +1,10 @@
 import * as cdk from "aws-cdk-lib";
-import * as acm from "aws-cdk-lib/aws-certificatemanager";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as ecsPatterns from "aws-cdk-lib/aws-ecs-patterns";
-import * as efs from "aws-cdk-lib/aws-efs";
 import * as rds from "aws-cdk-lib/aws-rds";
+import * as s3 from "aws-cdk-lib/aws-s3";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
 import { getConfig } from "./config";
@@ -16,8 +15,7 @@ interface ApiStackProps extends cdk.StackProps {
   database: rds.DatabaseInstance;
   databaseSecret: secretsmanager.ISecret;
   appAuthSecret: secretsmanager.ISecret;
-  fileSystem: efs.IFileSystem;
-  accessPoint: efs.IAccessPoint;
+  catalogBucket: s3.IBucket;
 }
 
 export class ApiStack extends cdk.Stack {
@@ -35,11 +33,6 @@ export class ApiStack extends cdk.Stack {
       this,
       "CicRepository",
       config.ecrRepoName,
-    );
-    const certificate = acm.Certificate.fromCertificateArn(
-      this,
-      "ExistingCertificate",
-      config.certificateArn,
     );
     const serviceSecurityGroup = new ec2.SecurityGroup(
       this,
@@ -60,8 +53,9 @@ export class ApiStack extends cdk.Stack {
         securityGroups: [serviceSecurityGroup],
         platformVersion: ecs.FargatePlatformVersion.VERSION1_4,
         publicLoadBalancer: true,
-        certificate,
-        redirectHTTP: true,
+        // Without an ACM certificate, the public ALB listens on HTTP. CloudFront
+        // remains the HTTPS entry point for users and connects to this listener.
+        redirectHTTP: false,
         circuitBreaker: { rollback: true },
         healthCheckGracePeriod: cdk.Duration.seconds(60),
         taskImageOptions: {
@@ -76,7 +70,7 @@ export class ApiStack extends cdk.Stack {
             NODE_ENV: config.nodeEnv,
             SERVICE_ROLE: "api",
             PORT: String(config.api.containerPort),
-            DATABASE_SSL: "false",
+            DATABASE_SSL: "true",
             PGHOST: props.database.dbInstanceEndpointAddress,
             PGPORT: props.database.dbInstanceEndpointPort,
             PGDATABASE: config.database.name,
@@ -88,6 +82,9 @@ export class ApiStack extends cdk.Stack {
             DAILY_REFRESH_SPACING_MINUTES: String(
               config.scheduler.spacingMinutes,
             ),
+            CATALOG_STORAGE_BUCKET: props.catalogBucket.bucketName,
+            CATALOG_STORAGE_PREFIX: "catalogs",
+            CATALOG_STORAGE_SYNC_INTERVAL_MS: "15000",
           },
           secrets: {
             PGUSER: ecs.Secret.fromSecretsManager(
@@ -114,23 +111,7 @@ export class ApiStack extends cdk.Stack {
       },
     );
 
-    service.taskDefinition.addVolume({
-      name: "catalogs",
-      efsVolumeConfiguration: {
-        fileSystemId: props.fileSystem.fileSystemId,
-        transitEncryption: "ENABLED",
-        authorizationConfig: {
-          accessPointId: props.accessPoint.accessPointId,
-          iam: "ENABLED",
-        },
-      },
-    });
-    service.taskDefinition.defaultContainer?.addMountPoints({
-      sourceVolume: "catalogs",
-      containerPath: "/app/catalogs",
-      readOnly: false,
-    });
-    props.fileSystem.grantRootAccess(service.taskDefinition.taskRole);
+    props.catalogBucket.grantReadWrite(service.taskDefinition.taskRole);
     props.databaseSecret.grantRead(service.taskDefinition.taskRole);
     props.appAuthSecret.grantRead(service.taskDefinition.taskRole);
 

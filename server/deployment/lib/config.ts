@@ -22,7 +22,7 @@ export interface DeploymentConfig {
   hostedZoneName: string;
 
   // SSL Certificate
-  certificateArn: string;
+  certificateArn?: string;
 
   // Service Configuration
   api: {

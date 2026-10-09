@@ -1,0 +1,218 @@
+{
+  "/CicFrontendStack": [
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "<anonymous> (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\bin\\deployment.ts:18:1)",
+        "...node internals, ts-node, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/CicFrontendStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C1024MiB1024MiB": [
+    {
+      "type": "aws:cdk:is-custom-resource-handler-singleton",
+      "data": true
+    },
+    {
+      "type": "aws:cdk:is-custom-resource-handler-runtime-family",
+      "data": 2
+    }
+  ],
+  "/CicFrontendStack/CloudFrontURL": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CloudFrontURL"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new FrontendStack (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\lib\\frontend-stack.ts:100:5)",
+        "<anonymous> (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\bin\\deployment.ts:18:1)",
+        "...node internals, ts-node, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/CicFrontendStack/CFID": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CFID"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new FrontendStack (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\lib\\frontend-stack.ts:103:5)",
+        "<anonymous> (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\bin\\deployment.ts:18:1)",
+        "...node internals, ts-node, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/CicFrontendStack/BootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/CicFrontendStack/CheckBootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CheckBootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/CicFrontendStack/FrontendBucket/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "FrontendBucketEFE2E19C"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Bucket2 in aws-cdk-lib...",
+        "new FrontendStack (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\lib\\frontend-stack.ts:36:28)",
+        "<anonymous> (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\bin\\deployment.ts:18:1)",
+        "...node internals, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/CicFrontendStack/OAI/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "OAIE1EFC67F"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new OriginAccessIdentity2 in aws-cdk-lib...",
+        "new FrontendStack (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\lib\\frontend-stack.ts:43:17)",
+        "<anonymous> (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\bin\\deployment.ts:18:1)",
+        "...node internals, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/CicFrontendStack/Distribution/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "Distribution830FAC52"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Distribution2 in aws-cdk-lib...",
+        "new FrontendStack (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\lib\\frontend-stack.ts:56:26)",
+        "<anonymous> (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\bin\\deployment.ts:18:1)",
+        "...node internals, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/CicFrontendStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C1024MiB1024MiB/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C1024MiB1024MiB6D9F8D19"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new BucketDeployment2 in aws-cdk-lib...",
+        "new FrontendStack (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\lib\\frontend-stack.ts:88:5)",
+        "<anonymous> (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\bin\\deployment.ts:18:1)"
+      ]
+    }
+  ],
+  "/CicFrontendStack/CDKMetadata/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadata"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/CicFrontendStack/FrontendBucket/Policy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "FrontendBucketPolicy1DFF75D9"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...WrappedClass.addToResourcePolicy in aws-cdk-lib...",
+        "new FrontendStack (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\lib\\frontend-stack.ts:44:20)",
+        "<anonymous> (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\bin\\deployment.ts:18:1)",
+        "...node internals, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/CicFrontendStack/FrontendDeployment/AwsCliLayer/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "FrontendDeploymentAwsCliLayer77737BA0"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new BucketDeployment2 in aws-cdk-lib...",
+        "new FrontendStack (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\lib\\frontend-stack.ts:88:5)",
+        "<anonymous> (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\bin\\deployment.ts:18:1)",
+        "...node internals, ts-node..."
+      ]
+    }
+  ],
+  "/CicFrontendStack/FrontendDeployment/CustomResource-1024MiB-1024MiB/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "FrontendDeploymentCustomResource1024MiB1024MiB4082691D"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new BucketDeployment2 in aws-cdk-lib...",
+        "new FrontendStack (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\lib\\frontend-stack.ts:88:5)",
+        "<anonymous> (D:\\mm-flooring\\cic-product-integration\\client\\deployment\\bin\\deployment.ts:18:1)",
+        "...node internals, ts-node..."
+      ]
+    }
+  ],
+  "/CicFrontendStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C1024MiB1024MiB/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C1024MiB1024MiBServiceRoleBE855947"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/CicFrontendStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C1024MiB1024MiB/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C1024MiB1024MiBServiceRoleDefaultPolicy2360480C"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ]
+}
