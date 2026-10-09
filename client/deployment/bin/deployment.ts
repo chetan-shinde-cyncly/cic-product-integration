@@ -9,7 +9,11 @@ const config = loadConfig(envName);
 const stackName = `${config.stackPrefix}Stack`;
 
 console.log(`Deploying CIC frontend to ${envName}.`);
-console.log(`Stack: ${stackName}; domain: ${config.domainName}`);
+console.log(
+  config.certificateArn
+    ? `Stack: ${stackName}; custom domain: ${config.domainName}`
+    : `Stack: ${stackName}; using the generated CloudFront domain`,
+);
 
 new FrontendStack(app, stackName, {
   env: { account: config.account, region: config.region },

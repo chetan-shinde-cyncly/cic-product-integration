@@ -18,7 +18,7 @@ export interface DeploymentConfig {
   hostedZoneId: string;
 
   // SSL Certificate
-  certificateArn: string;
+  certificateArn?: string;
 
   // Build Path
   frontendBuildPath: string;

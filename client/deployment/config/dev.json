@@ -3,9 +3,11 @@
   "region": "us-east-1",
   "nodeEnv": "development",
   "stackPrefix": "CicFrontend",
-  "domainName": "cic.my.dev.broadlume.com",
-  "hostedZoneName": "my.dev.broadlume.com",
+  "domainName": "cic.my.stage.broadlume.com",
+  "hostedZoneName": "my.stage.broadlume.com",
   "hostedZoneId": "Z02737592W07GAMOC920C",
-  "certificateArn": "arn:aws:acm:us-east-1:202061849983:certificate/aa5d5536-0088-45bf-98b4-0ab9708e5405",
-  "frontendBuildPath": "../dist"
+  "certificateArn": "arn:aws:acm:us-east-1:202061849983:certificate/48a12a38-a774-48c5-88a5-2bec2f4d336b",
+  "frontendBuildPath": "../dist",
+  "expectedDistributionId": "E116G6TV4CGCO3",
+  "expectedApiOrigin": "CICApi-CicAp-ct87aiBnQpqh-35641331.us-east-1.elb.amazonaws.com"
 }

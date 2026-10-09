@@ -6,6 +6,6 @@
   "domainName": "cic.web.cyncly.com",
   "hostedZoneName": "web.cyncly.com",
   "hostedZoneId": "Z02737592W07GAMOC920C",
-  "certificateArn": "arn:aws:acm:us-east-1:202061849983:certificate/4a72c2d7-41c7-41e6-9cbb-4b46d464b830",
+  "certificateArn": "arn:aws:acm:us-east-1:202061849983:certificate/9f6896e7-3363-4c9f-bdf6-6b3080d847f2",
   "frontendBuildPath": "../dist"
 }

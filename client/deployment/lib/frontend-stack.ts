@@ -12,7 +12,7 @@ interface FrontendStackProps extends cdk.StackProps {
   domainName: string;
   hostedZoneName: string;
   hostedZoneId: string;
-  certificateArn: string;
+  certificateArn?: string;
   frontendBuildPath: string;
 }
 
@@ -25,11 +25,13 @@ export class FrontendStack extends cdk.Stack {
       ? "CicApiAlbDnsProduction"
       : "CicApiAlbDns";
     const apiAlbDns = cdk.Fn.importValue(apiExportName);
-    const certificate = acm.Certificate.fromCertificateArn(
-      this,
-      "ExistingCertificate",
-      props.certificateArn,
-    );
+    const certificate = props.certificateArn
+      ? acm.Certificate.fromCertificateArn(
+          this,
+          "ExistingCertificate",
+          props.certificateArn,
+        )
+      : undefined;
 
     const frontendBucket = new s3.Bucket(this, "FrontendBucket", {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -52,8 +54,9 @@ export class FrontendStack extends cdk.Stack {
       originAccessIdentity: oai,
     });
     const distribution = new cloudfront.Distribution(this, "Distribution", {
-      domainNames: [props.domainName],
-      certificate,
+      ...(certificate
+        ? { domainNames: [props.domainName], certificate }
+        : {}),
       defaultRootObject: "index.html",
       defaultBehavior: {
         origin: staticOrigin,
@@ -63,7 +66,10 @@ export class FrontendStack extends cdk.Stack {
       additionalBehaviors: {
         "api/*": {
           origin: new origins.HttpOrigin(apiAlbDns, {
-            protocolPolicy: cloudfront.OriginProtocolPolicy.HTTPS_ONLY,
+            // The API load balancer has an HTTP listener. The viewer connection
+            // is still HTTPS at CloudFront; only the CloudFront-to-ALB hop uses
+            // HTTP until the API stack provisions an HTTPS listener.
+            protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
           }),
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
           allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
@@ -92,7 +98,7 @@ export class FrontendStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, "CloudFrontURL", {
-      value: distribution.distributionDomainName,
+      value: `https://${distribution.distributionDomainName}`,
     });
     new cdk.CfnOutput(this, "CFID", {
       value: distribution.distributionId,
