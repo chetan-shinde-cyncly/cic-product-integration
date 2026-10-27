@@ -19,14 +19,14 @@ const createDailyRefreshScheduler = (app, dependencies = {}) => {
 
   const DAILY_REFRESH_IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
   const DAILY_REFRESH_HOUR_IST = Number(
-    process.env.DAILY_REFRESH_HOUR_IST || 6,
+    process.env.DAILY_REFRESH_HOUR_IST || 5,
   );
   const DAILY_REFRESH_MINUTE_IST = Number(
     process.env.DAILY_REFRESH_MINUTE_IST || 0,
   );
   const DAILY_REFRESH_LANG = process.env.DAILY_REFRESH_LANG || "en-US";
   const DAILY_REFRESH_SPACING_MINUTES = Number(
-    process.env.DAILY_REFRESH_SPACING_MINUTES || 3,
+    process.env.DAILY_REFRESH_SPACING_MINUTES || 2,
   );
   const DAILY_REFRESH_ENABLED =
     String(process.env.DAILY_REFRESH_ENABLED || "true").toLowerCase() !==
@@ -139,7 +139,7 @@ const createDailyRefreshScheduler = (app, dependencies = {}) => {
             const item =
               typeof selection === "object"
                 ? selection
-                : { catalogId: selection };
+                : {catalogId: selection};
             const catalogId = normalizeId(item.catalogId);
             const strategy =
               item.versionStrategy === "PINNED" ? "PINNED" : "LATEST";
@@ -555,7 +555,7 @@ const createDailyRefreshScheduler = (app, dependencies = {}) => {
           selectedCatalogs: availableCatalogs.filter(
             (catalog) => catalog.selected,
           ),
-          catalogVersionIds: await resolveCatalogVersionIds({ lang }),
+          catalogVersionIds: await resolveCatalogVersionIds({lang}),
         });
       } catch (error) {
         next(error);
@@ -626,4 +626,4 @@ const createDailyRefreshScheduler = (app, dependencies = {}) => {
   };
 };
 
-module.exports = { createDailyRefreshScheduler };
+module.exports = {createDailyRefreshScheduler};

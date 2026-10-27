@@ -1359,6 +1359,10 @@ function hasExportValue(value) {
 }
 
 function mapProductForExport(product) {
+  const getLinkByType = (type, locale = "en-US") =>
+    product?.moreInfoLinks?.find((link) => link.type === type)?.uris?.[
+      locale
+    ] ?? "";
   const codeValue = coerceExportValue(getNestedValue(product, "code"));
   const skuValue = coerceExportValue(getNestedValue(product, "refCodes.sku"));
   const productType = normalizeProductType(
@@ -1388,6 +1392,26 @@ function mapProductForExport(product) {
         .join(" / ");
     }
     return coerceExportValue(val);
+  })();
+
+  const whereToApplyValue = (() => {
+    const val1 = getNestedValue(
+      product,
+      "classification.characteristics.applications",
+    );
+    if (Array.isArray(val1)) {
+      const uniqueValues = new Map();
+      val1.forEach((item) => {
+        const value = String(item || "").trim();
+        if (value) {
+          uniqueValues.set(value.toLowerCase(), value);
+        }
+      });
+      return [...uniqueValues.values()]
+        .sort((a, b) => b.localeCompare(a, undefined, {sensitivity: "base"}))
+        .join(" / ");
+    }
+    return coerceExportValue(val1);
   })();
 
   // Pre-compute processed fields
@@ -1432,16 +1456,26 @@ function mapProductForExport(product) {
   const exportItem = {
     application: applicationValue,
     application_facet: toTitleCase(applicationValue),
-    backing: coerceExportValue(
-      getNestedValue(product, "classification.characteristics.backingMaterial"),
-    ),
+    backing:
+      coerceExportValue(
+        getNestedValue(
+          product,
+          "classification.characteristics.backingMaterial",
+        ),
+      ) ||
+      coerceExportValue(
+        getNestedValue(product, "descriptions.others.backingMaterial.en-US"),
+      ),
     backing_facet: toTitleCase(
       coerceExportValue(
         getNestedValue(
           product,
           "classification.characteristics.backingMaterial",
         ),
-      ),
+      ) ||
+        coerceExportValue(
+          getNestedValue(product, "descriptions.others.backingMaterial.en-US"),
+        ),
     ),
     brand: coerceExportValue(getNestedValue(product, "brand.name")),
     brand_facet: toTitleCase(
@@ -1467,6 +1501,9 @@ function mapProductForExport(product) {
       coerceExportValue(
         getNestedValue(product, "classification.characteristics.colorFamily"),
       ),
+    ),
+    color_number: coerceExportValue(
+      getNestedValue(product, "refCodes.others.colorNumber") || "",
     ),
     color_variation: coerceExportValue(
       getNestedValue(product, "classification.characteristics.colorVariation"),
@@ -1537,15 +1574,31 @@ function mapProductForExport(product) {
         getNestedValue(product, "classification.characteristics.look"),
       ),
     ),
-    material: coerceExportValue(
-      getNestedValue(product, "classification.characteristics.material") ??
-        getNestedValue(product, "classification.characteristics.fiberBrand"),
+    material: toTitleCase(
+      coerceExportValue(
+        getNestedValue(product, "classification.characteristics.material") ||
+          getNestedValue(
+            product,
+            "classification.characteristics.fiberBrand",
+          ) ||
+          getNestedValue(product, "descriptions.others.fiberBrand.en-US") ||
+          getNestedValue(product, "descriptions.others.fibreBrand.en-US"),
+      ),
     ),
+
     material_facet: toTitleCase(
       coerceExportValue(
-        getNestedValue(product, "classification.characteristics.material") ??
-          getNestedValue(product, "classification.characteristics.fiberBrand"),
+        getNestedValue(product, "classification.characteristics.material") ||
+          getNestedValue(
+            product,
+            "classification.characteristics.fiberBrand",
+          ) ||
+          getNestedValue(product, "descriptions.others.fiberBrand.en-US") ||
+          getNestedValue(product, "descriptions.others.fibreBrand.en-US"),
       ),
+    ),
+    fiber_content: coerceExportValue(
+      getNestedValue(product, "descriptions.others.fibreContentName.en-US"),
     ),
     msrp: "",
     msrp_unit_price: "",
@@ -1616,6 +1669,8 @@ function mapProductForExport(product) {
     warranty_text: coerceExportValue(
       getNestedValue(product, "descriptions.others.residentialWarranty.en-US"),
     ),
+    residentialWarranty: getLinkByType("residentialWarranty"),
+    commercialWarranty: getLinkByType("commercialWarranty"),
     wear_layer: coerceExportValue(
       getNestedValue(product, "descriptions.others.wearLayerMaterial.en-US"),
     ),
@@ -1643,6 +1698,7 @@ function mapProductForExport(product) {
     width_facet: toTitleCase(
       normalizeFacetRange(getNestedValue(product, "dimensions.width.range")),
     ),
+    where_to_apply: whereToApplyValue,
     z_prod_type: productType,
   };
 
