@@ -26,7 +26,7 @@ const createDailyRefreshScheduler = (app, dependencies = {}) => {
   );
   const DAILY_REFRESH_LANG = process.env.DAILY_REFRESH_LANG || "en-US";
   const DAILY_REFRESH_SPACING_MINUTES = Number(
-    process.env.DAILY_REFRESH_SPACING_MINUTES || 2,
+    process.env.DAILY_REFRESH_SPACING_MINUTES || 1.5,
   );
   const DAILY_REFRESH_ENABLED =
     String(process.env.DAILY_REFRESH_ENABLED || "true").toLowerCase() !==

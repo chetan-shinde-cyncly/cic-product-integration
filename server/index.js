@@ -1249,6 +1249,10 @@ function normalizeProductType(productType) {
   if (value.toLowerCase() === "carpettile") {
     return "carpet_tile";
   }
+
+  if (value.toLowerCase() === "vinyl") {
+    return "sheet";
+  }
   return value;
 }
 

@@ -271,6 +271,58 @@ const registerApiRoutes = (app, dependencies) => {
     }
   });
 
+  app.get("/api/catalogs/by-code/:code", async (req, res) => {
+    const lang = req.query.lang || "en-US";
+    const code = String(req.params.code || "").trim();
+
+    if (!code) {
+      return res.status(400).json({ message: "Catalog code is required." });
+    }
+
+    const findByCode = (items) =>
+      (items || []).find(
+        (catalog) =>
+          String(catalog?.code || "")
+            .trim()
+            .toLowerCase() === code.toLowerCase(),
+      ) || null;
+
+    const cachePayload = readCache(lang);
+    let catalog = findByCode(cachePayload?.items);
+    let source = "cache";
+
+    // Only hit the catalog API when the code is missing from a stale or
+    // absent cache, so unknown codes don't trigger a fetch on every request.
+    if (!catalog && !isCacheFresh(cachePayload)) {
+      try {
+        const items = await fetchCatalogsFromApi(lang);
+        writeCache(lang, items);
+        catalog = findByCode(items);
+        source = "api";
+      } catch (error) {
+        if (!cachePayload) {
+          return res
+            .status(500)
+            .json({ message: error.message || "Request failed" });
+        }
+      }
+    }
+
+    if (!catalog) {
+      return res
+        .status(404)
+        .json({ message: `No catalog found for code "${code}".` });
+    }
+
+    return res.json({
+      catalogId: catalog.id,
+      code: catalog.code,
+      name: catalog.name,
+      lang,
+      source,
+    });
+  });
+
   app.get("/api/catalog-products", async (req, res) => {
     const catalogVersionId = String(req.query.catalogVersionId || "").trim();
     const lang = String(req.query.lang || "en-US").trim();

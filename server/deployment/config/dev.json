@@ -34,10 +34,10 @@
   },
   "scheduler": {
     "enabled": true,
-    "hourIst": 6,
+    "hourIst": 5,
     "minuteIst": 0,
     "lang": "en-US",
-    "spacingMinutes": 3
+    "spacingMinutes": 1.5
   },
   "nodeEnv": "development"
 }
